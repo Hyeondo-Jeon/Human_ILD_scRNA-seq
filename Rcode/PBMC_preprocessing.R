@@ -235,7 +235,7 @@ Pmerge$cell[Pmerge$subcluster %in% c("24_1")] <- "pDC"
 Idents(Pmerge) <- Pmerge$cell
 DimPlot(Pmerge, label = T, label.size = 5, repel = T)
 
-## dot plot of marker genes
+## dot plot for marker genes
 Idents(Pmerge) <- factor(Pmerge$cell,levels = c("Activated B","Naive B","Plasma","Cycling T","CD4+ Naive","CD4+ Treg","CD8+ Naive","CD8+ Memory",
                                                 "CD8+ CTL","NK-like T","CD56 dim NK","CD56 bright NK","Non-cMono","cMono","cDC2","pDC"))
 marker_list_pbmc <- c("PTPRC","CD79A", "MS4A1","BANK1", # Activated B
