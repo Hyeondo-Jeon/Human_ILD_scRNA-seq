@@ -181,11 +181,22 @@ Bmerge <- merge(BAL_HP_1,
                 y = c(BAL_DIP_1, BAL_UIP_1), 
                 add.cell.ids = c("H1", "D1", "U1")
                )
-VlnPlot(Bmerge, features = c("nCount_RNA", "nFeature_RNA", "percent.mt"), ncol = 3, group.by = "orig.ident", pt.size = 0)
+
+## scRNA-seq QC metrics by sample
+VlnPlot(Bmerge, 
+        features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),
+        ncol = 3,
+        group.by = "orig.ident",
+        pt.size = 0
+       )
+
+## subtype info
 Bmerge$diagnosis <- "a"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_HP_1")] <- "HP"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_DIP_1")] <- "DIP"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_UIP_1")] <- "UIP"
+
+## processing
 Bmerge <- JoinLayers(Bmerge)
 Bmerge <- NormalizeData(Bmerge)
 Bmerge <- FindVariableFeatures(Bmerge, selection.method = "vst", nfeatures = 3200) 
@@ -196,13 +207,14 @@ Bmerge <- FindNeighbors(Bmerge, dims = 1:15)
 Bmerge <- FindClusters(Bmerge, resolution = 1.0)
 Bmerge <- RunUMAP(Bmerge, dims = 1:15)
 DimPlot(Bmerge, label = T)
+
+## DEGs
 balf <- FindAllMarkers(Bmerge, test.use = "wilcox", min.pct = 0.5, logfc.threshold = 1, group.by = "seurat_clusters")
 FeaturePlot(Bmerge, c("PTPRC","CD79A", "MS4A1","BANK1","BLK","MZB1","JCHAIN","CD3E","MKI67", "TOP2A","STMN1","CD4","FOXP3","IL2RA", "CTLA4","CCR7", "IL7R",
                       "SELL","CXCR6","CD8A", "GZMB", "PRF1","NKG7", "NCAM1", "FCGR3A","CD14", "S100A8", "S100A9","SPP1","CLEC9A","XCR1",
                       "CLEC10A","CD1C","CLEC4C","IRF7","LAMP3","FSCN1","C1QA","CDK1","PCLAF","TREM2","MRC1","FABP4","FFAR4","TPSAB1","KIT", "CPA3","CSF3R","FCGR3B","NAMPT"))
-FeaturePlot(Bmerge, c( "IL7R","GZMK", "TCF7","NELL2","GZMK","CD28",
-                      "SELL","CXCR6","CD8A", "GZMB", "PRF1","NKG7", "NCAM1", "FCGR3A"), label = T)
 
+## cell type annotation
 Bmerge$cell <- "a"
 Bmerge$cell[Bmerge$seurat_clusters %in% c("13")] <- "Neutrophil"
 Bmerge$cell[Bmerge$seurat_clusters %in% c("25")] <- "Mast cell"
@@ -226,14 +238,31 @@ Bmerge$cell[Bmerge$seurat_clusters %in% c("20")] <- "SPP1+ MΦ"
 Bmerge$cell[Bmerge$seurat_clusters %in% c("3","4")] <- "SPP1+ Mono"
 Bmerge$cell[Bmerge$seurat_clusters %in% c("8")] <- "iMono"
 Idents(Bmerge) <- Bmerge$cell
-DimPlot(Bmerge, label = T, label.size = 5, repel = T) # 900 550
-DimPlot(Bmerge, label = T, label.size = 5, repel = T, split.by = "orig.ident") # 1500 550
+DimPlot(Bmerge, label = T, label.size = 5, repel = T) 
 
+## dot plot for marker genes
 Idents(Bmerge) <- factor(Bmerge$cell,levels = c("Activated B","Plasma","Cycling T","CD4+ Treg","CD4+ Naive","CD4+ Effector memory","CD8+ Memory","CD8+ CTL",
                                                  "CD56 bright NK","SPP1+ Mono","iMono","cDC1","cDC2","pDC","mDC","Cycling MΦ","LAM","SPP1+ MΦ","Alveolar MΦ","Mast cell","Neutrophil"))
-marker_list_bal <- c("PTPRC","CD79A", "MS4A1","BANK1","BLK","MZB1","JCHAIN","CD3E","MKI67", "TOP2A","STMN1","CD4","FOXP3","IL2RA", "CTLA4","CCR7", "IL7R",
-                 "SELL","CXCR6","CD8A","GZMK","CD28","GZMB", "PRF1","NKG7","NCAM1", "FCGR3A","CD14", "S100A8", "S100A9","SPP1","CLEC9A","XCR1",
-                 "CLEC10A","CD1C","CLEC4C","IRF7","LAMP3","FSCN1","C1QA","CDK1","PCLAF","TREM2","MRC1","FABP4","FFAR4","TPSAB1","KIT", "CPA3","CSF3R","FCGR3B","NAMPT")
+marker_list_bal <- c("PTPRC","CD79A", "MS4A1","BANK1","BLK", # Activated B
+                     "MZB1","JCHAIN", # Plasma
+                     "CD3E","MKI67", "TOP2A","STMN1", # Cycling T
+                     "CD4","FOXP3","IL2RA", "CTLA4", # CD4+ Treg
+                     "CCR7","IL7R","SELL", # CD4+ Naive
+                     "CXCR6", # CD4+ Effector memory
+                     "CD8A","GZMK","CD28", # CD8+ Memory
+                     "GZMB", "PRF1", # CD8+ CTL
+                     "NKG7","NCAM1", "FCGR3A", # CD56 bright NK
+                     "CD14", "S100A8", "S100A9","SPP1", # SPP1+ Mono & iMono
+                     "CLEC9A","XCR1", # cDC1
+                     "CLEC10A","CD1C", # cDC2
+                     "CLEC4C","IRF7", # pDC
+                     "LAMP3","FSCN1", # mDC
+                     "C1QA","CDK1","PCLAF", # Cycling MΦ
+                     "TREM2","MRC1", # LAM
+                     "FABP4","FFAR4", # Alveolar MΦ
+                     "TPSAB1","KIT", "CPA3", # Mast cell
+                     "CSF3R","FCGR3B","NAMPT" # Neutrophil
+                    )
 DotPlot(Bmerge, features = marker_list_bal, cols = c("lightgray", "slateblue4")) + 
   labs(x = " ", y = " ") +
   theme(
@@ -241,4 +270,5 @@ DotPlot(Bmerge, features = marker_list_bal, cols = c("lightgray", "slateblue4"))
     axis.text.y = ggtext::element_markdown(hjust = 1, size = 18), 
     axis.title = element_text(size = 26),                        
     legend.title = element_text(size = 16),                     
-    legend.text = element_text(size = 18))
+    legend.text = element_text(size = 18)
+  )
