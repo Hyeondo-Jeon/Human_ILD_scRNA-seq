@@ -1,7 +1,5 @@
 # sessionInfo()
 # R version 4.3.0 (2023-04-21)
-# Platform: x86_64-pc-linux-gnu (64-bit)
-# Running under: Ubuntu 20.04.6 LTS
 # 
 # other attached packages:
 # [1] pheatmap_1.0.12             viridis_0.6.5               viridisLite_0.4.2             TrajectoryUtils_1.8.0      
