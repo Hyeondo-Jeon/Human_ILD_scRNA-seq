@@ -1,12 +1,28 @@
-# tissue merge ####
-Tmerge <- merge(UIP_1, y = c(UIP_2, UIP_3, UIP_4, DIP_1, NSIP_1), add.cell.ids = c("U1", "U2", "U3", "U4", "D1","N1"))
+## ------------------------------------------------------------
+## Tissue data merge
+## ------------------------------------------------------------
+Tmerge <- merge(UIP_1, 
+                y = c(UIP_2, UIP_3, UIP_4, DIP_1, NSIP_1), 
+                add.cell.ids = c("U1", "U2", "U3", "U4", "D1","N1")
+               )
+
+## subtype info
 Tmerge$diagnosis <- "a"
 Tmerge$diagnosis[Tmerge$orig.ident %in% c("UIP_1","UIP_2","UIP_3","UIP_4")] <- "UIP"
 Tmerge$diagnosis[Tmerge$orig.ident %in% c("NSIP_1")] <- "NSIP"
 Tmerge$diagnosis[Tmerge$orig.ident %in% c("DIP_1")] <- "DIP"
 Tmerge$diagnosis <- as.factor(Tmerge$diagnosis)
+
+## scRNA-seq QC metrics by sample
+VlnPlot(Tmerge,
+        features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),
+        ncol = 3,
+        group.by = "orig.ident",
+        pt.size = 0
+       )
+
+## processing
 Tmerge <- JoinLayers(Tmerge)
-VlnPlot(Tmerge,features = c("nCount_RNA", "nFeature_RNA", "percent.mt"),ncol = 3,group.by = "orig.ident",pt.size = 0) # 600 500
 Tmerge <- NormalizeData(Tmerge)
 Tmerge <- FindVariableFeatures(Tmerge, selection.method = "vst", nfeatures = 3800)
 Tmerge <- ScaleData(Tmerge, features = rownames(Tmerge))
@@ -16,8 +32,12 @@ Tmerge <- FindNeighbors(Tmerge, dims = 1:15)
 Tmerge <- FindClusters(Tmerge, resolution = 1.5)
 Tmerge <- RunUMAP(Tmerge, dims = 1:15)
 DimPlot(Tmerge, label = T) + ggtitle("")
+
+## DEGs
 tissue <- FindAllMarkers(Tmerge, test.use = "wilcox", min.pct = 0.5, logfc.threshold = 1, group.by = "seurat_clusters")
 FeaturePlot(Tmerge, c("CLEC4C","PTPRC","CD3E","MS4A1","JCHAIN","EPCAM","COL1A1","CDH5","NRCAM"))
+
+## lineage cell type
 Tmerge$population <- "a"
 Tmerge$population[Tmerge$seurat_clusters %in% c("1","0","40","38","39","36","19","35","33","13")] <- "Lymphoid"
 Tmerge$population[Tmerge$seurat_clusters %in% c("22","17","28","30","25","27","6","23","11","3","15","8","37")] <- "Myeloid"
@@ -29,6 +49,7 @@ DimPlot(Tmerge, label = T, group.by = "population") + ggtitle("")
 Tmerge$cell <- "a"
 Tmerge$cell[Tmerge$seurat_clusters %in% c("31")] <- "Unknown"
 
+## dot plot for marker genes
 marker_list <- c("CDH5","PECAM1","EPCAM","MUC1","PTPRC","CD3E","CD79A","CD14","ITGAX","COL1A1","COL3A1","MAP1B","NRCAM")
 DotPlot(Tmerge, features = marker_list, cols = c("lightgray", "slateblue4"), group.by = "population") + 
   labs(x = " ", y = " ") +
@@ -37,9 +58,10 @@ DotPlot(Tmerge, features = marker_list, cols = c("lightgray", "slateblue4"), gro
     axis.text.y = ggtext::element_markdown(hjust = 1, size = 16), 
     axis.title = element_text(size = 26),                        
     legend.title = element_text(size = 14),                     
-    legend.text = element_text(size = 14))
+    legend.text = element_text(size = 14)
+  )
 
-# tissue lymphoid ####
+## tissue lymphoid sub clustering
 Lym <- subset(Tmerge, population %in% "Lymphoid")
 Lym <- NormalizeData(Lym)
 Lym <- FindVariableFeatures(Lym, selection.method = "vst", nfeatures = 2600)
@@ -51,6 +73,8 @@ Lym <- RunUMAP(Lym, dims = 1:10)
 DimPlot(Lym, label = T)
 FeaturePlot(Lym,  c("PTPRC","MS4A1","CD19","BANK1","BLK","FCER2","TCL1A","MME","DTX1","MKI67","TOP2A","MZB1","JCHAIN","CD3E","CD4","FOXP3","CTLA4",
                     "IL7R","SELL","CCR7","CD8A","CCL5","GZMK","CD28","GZMB","GZMK","PRF1","NKG7","NCAM1","FCGR3A","FGFBP2","GZMH","KIT","PCDH9"))
+
+
 Lym$cell[Lym$seurat_clusters %in% c("17")] <- "Naive B"
 Lym$cell[Lym$seurat_clusters %in% c("1","23")] <- "Activated B"
 Lym$cell[Lym$seurat_clusters %in% c("21")] <- "GC B"
@@ -248,3 +272,4 @@ ggplot(End_diag, aes(x = diagnosis, y = n, fill = cell)) + geom_bar(stat = "iden
 
 # Tissue cell type ####
 DimPlot(Tmerge, label = T, group.by = "cell", label.size = 5, repel = T) + ggtitle("")
+
