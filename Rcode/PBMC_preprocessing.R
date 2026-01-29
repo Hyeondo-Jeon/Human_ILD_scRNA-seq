@@ -173,3 +173,92 @@ for (sid in sample_ids) {
     " | Cells retained: ", ncol(seu)
   )
 }
+
+## ------------------------------------------------------------
+## PBMC data merge
+## ------------------------------------------------------------
+Pmerge <- merge(pbmc_DIP_1, 
+                y = c(pbmc_UIP_1, pbmc_UIP_2, pbmc_UIP_3, pbmc_UIP_4, pbmc_UIP_5), 
+                add.cell.ids = c("D1", "U1", "U2", "U3", "U4","U5")
+               )
+## subtype info
+Pmerge$diagnosis <- "a"
+Pmerge$diagnosis[Pmerge$orig.ident %in% c("PBMC_UIP_1","PBMC_UIP_2","PBMC_UIP_3","PBMC_UIP_4","PBMC_UIP_5")] <- "UIP"
+Pmerge$diagnosis[Pmerge$orig.ident %in% c("PBMC_DIP_1")] <- "DIP"
+
+## scRNA-seq QC metrics by sample
+VlnPlot(Pmerge, 
+        features = c("nCount_RNA", "nFeature_RNA", "percent.mt"), 
+        ncol = 3, 
+        group.by = "orig.ident", 
+        pt.size = 0
+       )
+
+## processing
+Pmerge <- JoinLayers(Pmerge)
+Pmerge <- NormalizeData(Pmerge)
+Pmerge <- FindVariableFeatures(Pmerge, selection.method = "vst", nfeatures = 2800)
+Pmerge <- ScaleData(Pmerge, features = rownames(Pmerge))
+Pmerge <- RunPCA(Pmerge, features = VariableFeatures(Pmerge))
+ElbowPlot(Pmerge, ndims = 50)
+Pmerge <- FindNeighbors(Pmerge, dims = 1:15)
+Pmerge <- FindClusters(Pmerge, resolution = 1.0)
+Pmerge <- RunUMAP(Pmerge, dims = 1:15)
+DimPlot(Pmerge, label = T)
+
+## DEGs
+pbmc <- FindAllMarkers(Pmerge, test.use = "wilcox", min.pct = 0.5, logfc.threshold = 1, group.by = "seurat_clusters")
+FeaturePlot(Pmerge,  c("PTPRC","CD79A", "MS4A1","BANK1","FCER2","TCL1A","JCHAIN","CD3E","MKI67", "TOP2A","STMN1","CD4","CCR7","SELL","IL7R","FOXP3","CTLA4",
+                       "CD8A", "TCF7","NELL2","GZMK","CD28","GZMB", "PRF1","NKG7", "NCAM1", "TYROBP","FCGR3A","LILRA1", "CX3CR1","CD14", "S100A8", "S100A9","CLEC10A","CD1C",
+                       "CLEC4C","IRF7"))
+
+## cell type annotation
+Pmerge <- FindSubCluster(Pmerge, cluster = "24", graph.name = "RNA_snn", subcluster.name = "subcluster",resolution = 0.1)
+DimPlot(Pmerge, label = T, group.by = "subcluster")
+Pmerge$cell <- "a"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("13","21","4")] <- "Naive B"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("15","7")] <- "Activated B"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("25")] <- "Plasma"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("26")] <- "Cycling T"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("16","12","8","9")] <- "CD4+ Naive"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("22")] <- "CD4+ Treg"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("11")] <- "CD8+ Naive"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("6")] <- "CD8+ Memory"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("0","14","17")] <- "CD8+ CTL"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("2","18")] <- "NK-like T"
+Pmerge$cell[Pmerge$subcluster %in% c("20","24_2")] <- "CD56 bright NK"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("1","3","10")] <- "CD56 dim NK"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("5","23","27")] <- "cMono"
+Pmerge$cell[Pmerge$seurat_clusters %in% c("19")] <- "Non-cMono"
+Pmerge$cell[Pmerge$subcluster %in% c("24_0")] <- "cDC2"
+Pmerge$cell[Pmerge$subcluster %in% c("24_1")] <- "pDC"
+Idents(Pmerge) <- Pmerge$cell
+DimPlot(Pmerge, label = T, label.size = 5, repel = T)
+
+## dot plot of marker genes
+Idents(Pmerge) <- factor(Pmerge$cell,levels = c("Activated B","Naive B","Plasma","Cycling T","CD4+ Naive","CD4+ Treg","CD8+ Naive","CD8+ Memory",
+                                                "CD8+ CTL","NK-like T","CD56 dim NK","CD56 bright NK","Non-cMono","cMono","cDC2","pDC"))
+marker_list_pbmc <- c("PTPRC","CD79A", "MS4A1","BANK1", # Activated B
+                      "FCER2","TCL1A", # Naive B
+                      "JCHAIN", # Plasma
+                      "CD3E","MKI67", "TOP2A", "STMN1", # Cycling T
+                      "CD4","CCR7","SELL","IL7R", # CD4+ Naive
+                      "FOXP3","CTLA4", # CD4+ Treg
+                      "CD8A", "TCF7","NELL2", # CD8+ Memory
+                      "GZMK","CD28", # CD8+ CTL
+                      "GZMB", "PRF1","TYROBP", # NK-like T
+                      "NKG7", "NCAM1", # CD56 dim NK & CD56 bright NK
+                      "FCGR3A","LILRA1", "CX3CR1",  # Non-cMono
+                      "CD14", "S100A8", "S100A9", # cMono
+                      "CLEC10A","CD1C", # cDC2
+                      "CLEC4C","IRF7" # pDC
+                     )
+DotPlot(Pmerge, features = marker_list_pbmc, cols = c("lightgray", "slateblue4")) + 
+  labs(x = " ", y = " ") +
+  theme(
+    axis.text.x = ggtext::element_markdown(angle= 45,hjust = 1, size = 16, face = "italic"), 
+    axis.text.y = ggtext::element_markdown(hjust = 1, size = 18), 
+    axis.title = element_text(size = 26),                        
+    legend.title = element_text(size = 16),                     
+    legend.text = element_text(size = 18)
+  )
