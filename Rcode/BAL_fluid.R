@@ -21,7 +21,7 @@ library(scDblFinder)
 ## BAL fluid data preprocessing
 ## ------------------------------------------------------------
 
-sample_ids <- c('BALF_UIP_1','BALF_DIP_1','BALF_HP_1')
+sample_ids <- c('BALF_UIP_1','BALF_DIP_1','BALF_NSIP_1')
 
 set.seed(1234)
 
@@ -179,7 +179,7 @@ for (sid in sample_ids) {
 ## ------------------------------------------------------------
 Bmerge <- merge(BAL_HP_1, 
                 y = c(BAL_DIP_1, BAL_UIP_1), 
-                add.cell.ids = c("H1", "D1", "U1")
+                add.cell.ids = c("D1", "N1", "U1")
                )
 
 ## scRNA-seq QC metrics by sample
@@ -192,8 +192,8 @@ VlnPlot(Bmerge,
 
 ## subtype info
 Bmerge$diagnosis <- "a"
-Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_HP_1")] <- "HP"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_DIP_1")] <- "DIP"
+Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_NSIP_1")] <- "NSIP"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_UIP_1")] <- "UIP"
 
 ## processing
