@@ -21,7 +21,7 @@ library(scDblFinder)
 ## BAL fluid data preprocessing
 ## ------------------------------------------------------------
 
-sample_ids <- c('BALF_UIP_1','BALF_DIP_1','BALF_NSIP_1')
+sample_ids <- c('BALF_UIP_1','BALF_DIP_1','BALF_UIP_2')
 
 set.seed(1234)
 
@@ -193,7 +193,7 @@ VlnPlot(Bmerge,
 ## subtype info
 Bmerge$diagnosis <- "a"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_DIP_1")] <- "DIP"
-Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_NSIP_1")] <- "NSIP"
+Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_UIP2")] <- "UIP"
 Bmerge$diagnosis[Bmerge$orig.ident %in% c("BAL_UIP_1")] <- "UIP"
 
 ## processing
